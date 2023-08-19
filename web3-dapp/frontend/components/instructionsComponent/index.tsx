@@ -179,7 +179,6 @@ function TokenInfo(params: { address: `0x${string}` }) {
       },
     ],
   });
-  console.log(data);
   const name = typeof data?.[0]?.result === "string" ? data?.[0]?.result : 0;
   const symbol = typeof data?.[1]?.result === "string" ? data?.[1]?.result : 0;
   const balance = typeof data?.[2]?.result === "number" ? data?.[2]?.result : 0;
