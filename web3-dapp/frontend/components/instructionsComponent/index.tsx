@@ -1,17 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./instructionsComponent.module.css";
-import {
-  useAccount,
-  useBalance,
-  useContractRead,
-  useContractReads,
-  useNetwork,
-  useSignMessage,
-} from "wagmi";
-import { walletActions } from "viem/dist/types/clients/decorators/wallet";
-import { json } from "stream/consumers";
-import exp from "constants";
-import { abi } from "./token";
+import { useAccount, useBalance, useContractReads, useNetwork, useSignMessage } from "wagmi";
 
 export default function InstructionsComponent() {
   return (
@@ -32,6 +21,7 @@ function PageBody() {
   return (
     <div>
       <WalletInfo></WalletInfo>
+      <RandomProfile></RandomProfile>
     </div>
   );
 }
@@ -117,99 +107,6 @@ function WalletBalance(params: { address: `0x${string}` }) {
   );
 }
 
-function TokenName() {
-  const { data, isError, isLoading } = useContractRead({
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    abi: [
-      {
-        constant: true,
-        inputs: [],
-        name: "name",
-        outputs: [
-          {
-            name: "",
-            type: "string",
-          },
-        ],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
-    ],
-    functionName: "name",
-  });
-
-  const name = typeof data === "string" ? data : 0;
-
-  if (isLoading) return <div>Fetching name…</div>;
-  if (isError) return <div className={styles.error_message}>Contract name not availalbe.</div>;
-  return <div>{name}</div>;
-}
-
-function TokenSymbol() {
-  const { data, isError, isLoading } = useContractRead({
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    abi: [
-      {
-        constant: true,
-        inputs: [],
-        name: "symbol",
-        outputs: [
-          {
-            name: "",
-            type: "string",
-          },
-        ],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
-    ],
-    functionName: "symbol",
-  });
-
-  const symbol = typeof data === "string" ? data : 0;
-
-  if (isLoading) return <div>Fetching symbol…</div>;
-  if (isError) return <div className={styles.error_message}>Contract symbol not availalbe.</div>;
-  return <div>{symbol}</div>;
-}
-
-function TokenBalance(params: { address: `0x${string}` }) {
-  const { data, isError, isLoading } = useContractRead({
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    abi: [
-      {
-        constant: true,
-        inputs: [
-          {
-            name: "_owner",
-            type: "address",
-          },
-        ],
-        name: "balanceOf",
-        outputs: [
-          {
-            name: "balance",
-            type: "uint256",
-          },
-        ],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
-    ],
-    functionName: "balanceOf",
-    args: [params.address],
-  });
-
-  const balance = typeof data === "number" ? data : 0;
-
-  if (isLoading) return <div>Fetching balance…</div>;
-  if (isError) return <div>Error fetching balance</div>;
-  return <div>{balance}</div>;
-}
-
 function TokenInfo(params: { address: `0x${string}` }) {
   const contractAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const abi = [
@@ -285,11 +182,36 @@ function TokenInfo(params: { address: `0x${string}` }) {
   console.log(data);
   const name = typeof data?.[0]?.result === "string" ? data?.[0]?.result : 0;
   const symbol = typeof data?.[1]?.result === "string" ? data?.[1]?.result : 0;
-  // const symbol = typeof data === "string" ? data : 0;
   const balance = typeof data?.[2]?.result === "number" ? data?.[2]?.result : 0;
 
   if (isLoading) return <div>Fetching balance…</div>;
   if (isError) return <div>Error fetching contract data</div>;
   const outputString = `${name} Balance: ${balance} ${symbol}`;
   return <div>{outputString}</div>;
+}
+
+function RandomProfile() {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("https://randomuser.me/api/")
+      .then((res) => res.json())
+      .then((data) => {
+        setData(data.results[0]);
+        setLoading(false);
+      });
+  }, []);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (!data) return <p>No profile data</p>;
+
+  return (
+    <div className={styles.profile_container}>
+      <h1>
+        Name: {data.name.title} {data.name.first} {data.name.last}
+      </h1>
+      <p>Email: {data.email}</p>
+    </div>
+  );
 }
