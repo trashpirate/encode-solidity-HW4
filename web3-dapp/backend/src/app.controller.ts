@@ -1,6 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import {TransactionReceipt} from 'ethers';
+import {MintTokensDTO} from './dtos/mintToken.dto';
+import {ProposalDTO} from './dtos/ballot.dto';
 
 @Controller()
 export class AppController {
@@ -12,8 +14,13 @@ export class AppController {
   }
 
   @Get('get-address')
-  getTokenAddress(): string {
+  getTokenAddress(): any {
     return this.appService.getTokenAddress();
+  }
+  
+  @Get('get-token-abi')
+  getTokenABI(): any {
+    return this.appService.getTokenABI();
   }
 
   @Get('get-total-supply')
@@ -34,5 +41,21 @@ export class AppController {
   @Get('get-transaction-receipt')
   getTransactionReceipt(@Query('txHash') txHash: string): Promise<TransactionReceipt> {
     return this.appService.getTransactionReceipt(txHash);
+  }
+
+  @Post('mint-tokens')
+  mintTokens(@Body() receiver: MintTokensDTO): Promise<any> {
+    console.log({receiver})
+    return this.appService.mintTokens(receiver.address);
+  }
+
+  @Get('get-ballot')
+  getBallot() : Promise<ProposalDTO[]> {
+    return this.appService.getBallot();
+  }
+
+  @Get('get-winner')
+  getWinner() : Promise<string> {
+    return this.appService.getWinner();
   }
 }
