@@ -62,11 +62,13 @@ export class AppService {
   async getBallot(): Promise<ProposalDTO[]> {
     let ballot: ProposalDTO[] = [];
     const ballotSize = Number(await this.ballotContract.ballotSize());
+    const blockNumber = await this.ballotContract.targetBlocknumber();
     for (let index = 0; index < ballotSize; index++) {
         const proposal = await this.ballotContract.proposals(index);
         const name = ethers.decodeBytes32String(proposal.name);
         const voteCount = Number(ethers.formatUnits(proposal.voteCount));
-        ballot.push({name: name, votes: voteCount});
+        
+        ballot.push({name: name, votes: voteCount, blocknumber: Number(blockNumber)});
     }
     return ballot;
   }

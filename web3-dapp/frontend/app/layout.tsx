@@ -4,7 +4,20 @@ import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import Navbar from "@/components/instructionsComponent/navigation/navbar";
 import Footer from "@/components/instructionsComponent/navigation/footer";
 
-const chains = [mainnet, sepolia];
+import { useIsomorphicLayoutEffect } from "usehooks-ts";
+
+// https://github.com/wagmi-dev/viem/discussions/781
+export function useShutTheFuckUpAboutENS() {
+  useIsomorphicLayoutEffect(() => {
+    const orig = window.console.error;
+    window.console.error = function (...args) {
+      if (args[0]?.name === "ChainDoesNotSupportContract") return;
+      orig.apply(window.console, args);
+    };
+  }, []);
+}
+
+const chains = [sepolia];
 
 const config = createConfig(
   getDefaultConfig({
@@ -24,6 +37,7 @@ const config = createConfig(
 );
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  useShutTheFuckUpAboutENS();
   return (
     <html lang="en">
       <WagmiConfig config={config}>

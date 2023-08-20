@@ -31,11 +31,9 @@ export default function InstructionsComponent() {
 function PageBody() {
   return (
     <div>
-      <BallotInfo></BallotInfo>
-      <BallotWinner></BallotWinner>
+      <Ballot></Ballot>
       <WalletInfo></WalletInfo>
-      <Delegate></Delegate>
-      <Vote></Vote>
+      <VotingInfo></VotingInfo>
     </div>
   );
 }
@@ -44,20 +42,24 @@ function PageBody() {
 function WalletInfo() {
   const { address, isConnecting, isReconnecting, isConnected, isDisconnected } = useAccount();
   const { chain } = useNetwork();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated) {
+    // Returns null on first render, so the client and server match
+    return null;
+  }
   if (isConnected && address)
     return (
-      <div>
-        <div className={styles.wallet_info}>
-          <p>Account Address: {address}</p>
-          <p>Network: {chain?.name}</p>
-          <WalletBalance address={address}></WalletBalance>
-          <TokenInfo address={address}></TokenInfo>
-          <RequestTokensToBeMinted address={address}></RequestTokensToBeMinted>
-        </div>
-
-        <div className={styles.voting_power}>
-          <VotingPowerInfo address={address}></VotingPowerInfo>
-        </div>
+      <div className={styles.wallet_info}>
+        <h2>Account</h2>
+        <p>Account Address: {address}</p>
+        <p>Network: {chain?.name}</p>
+        <WalletBalance address={address}></WalletBalance>
+        <TokenInfo address={address}></TokenInfo>
+        <RequestTokensToBeMinted address={address}></RequestTokensToBeMinted>
       </div>
     );
   if (isConnecting || isReconnecting)
@@ -68,7 +70,7 @@ function WalletInfo() {
     );
   if (isDisconnected)
     return (
-      <div>
+      <div className={styles.wallet_info}>
         <p>Wallet disconnected. Connect wallet to continue</p>
       </div>
     );
@@ -97,17 +99,17 @@ function TokenInfo(params: { address: `0x${string}` }) {
   const { data, isError, isLoading } = useContractReads({
     contracts: [
       {
-        address: TOKEN_ADDRESS,
+        address: TOKEN_ADDRESS as `0x${string}`,
         abi: tokenABI,
         functionName: "name",
       },
       {
-        address: TOKEN_ADDRESS,
+        address: TOKEN_ADDRESS as `0x${string}`,
         abi: tokenABI,
         functionName: "symbol",
       },
       {
-        address: TOKEN_ADDRESS,
+        address: TOKEN_ADDRESS as `0x${string}`,
         abi: tokenABI,
         functionName: "balanceOf",
         args: [params.address],
@@ -155,7 +157,6 @@ function RequestTokensToBeMinted(params: { address: `0x${string}` }) {
       </button>
     );
 
-  let txLink: string = `https://sepolia.etherscan.io/tx/${data.txHash}`;
   return (
     <div>
       <p>{data.success ? "Token Request successful!" : "Token Request failed."}</p>
@@ -166,29 +167,27 @@ function RequestTokensToBeMinted(params: { address: `0x${string}` }) {
   );
 }
 
-// voting power
-function VotingPowerInfo(params: { address: `0x${string}` }) {
-  const { data, isError, isLoading } = useContractReads({
-    contracts: [
-      {
-        address: BALLOT_ADDRESS,
-        abi: ballotABI,
-        functionName: "votingPower",
-        args: [params.address],
-      },
-    ],
-  });
+// ballot
+function Ballot() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
-  const votingPower =
-    typeof data?.[0]?.result === "bigint" ? formatUnits(data?.[0]?.result, 18) : 0;
+  if (!hydrated) {
+    // Returns null on first render, so the client and server match
+    return null;
+  }
 
-  if (isLoading) return <div>Fetching voting power…</div>;
-  if (isError) return <div>Error fetching contract data.</div>;
-  const outputString = `Your Voting Power: ${votingPower}`;
-  return <div>{outputString}</div>;
+  return (
+    <div>
+      <h2>Active Ballot</h2>
+      <BallotInfo></BallotInfo>
+      <BallotWinner></BallotWinner>
+    </div>
+  );
 }
 
-// ballot info
 function BallotInfo() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setLoading] = useState(true);
@@ -207,8 +206,7 @@ function BallotInfo() {
 
   return (
     <div>
-      <h2>Active Ballot</h2>
-      <h4>Current Results:</h4>
+      <h4>{`Current Results: (Blocknumber: ${data[0].blocknumber})`}</h4>
       <ul className={styles.proposal_list}>
         {data.map((proposal: any, index: number) => (
           <li className={styles.proposal_item} key={index}>
@@ -240,57 +238,70 @@ function BallotWinner() {
     <div>
       <div>
         {data.votes == 0
-          ? `No one has votes yet.`
+          ? `No one has voted yet.`
           : `Current Winner: ${data.winner} with ${data.votes} votes.`}
       </div>
     </div>
   );
 }
 
-//voting
-function Delegate() {
-  const [delegateAddress, setDelegateAddress] = useState("");
+// vote
+function VotingInfo() {
+  const { address, isConnecting, isReconnecting, isConnected, isDisconnected } = useAccount();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
-  const { config } = usePrepareContractWrite({
-    address: TOKEN_ADDRESS,
-    abi: tokenABI,
-    functionName: "delegate",
-    args: [delegateAddress as `0x${string}`],
-  });
-  const { data, error, isError, write } = useContractWrite(config);
+  if (!hydrated) {
+    // Returns null on first render, so the client and server match
+    return null;
+  }
 
-  const { isLoading, isSuccess } = useWaitForTransaction({
-    hash: data?.hash,
+  if (isConnected && address)
+    return (
+      <div className={styles.voting_power}>
+        <h2>Voting</h2>
+        <VotingPowerInfo address={address}></VotingPowerInfo>
+        <Vote></Vote>
+        <DelegateInfo address={address}></DelegateInfo>
+        <SelfDelegate address={address}></SelfDelegate>
+        <Delegate></Delegate>
+      </div>
+    );
+}
+
+function VotingPowerInfo(params: { address: `0x${string}` }) {
+  const { data, isError, isLoading } = useContractReads({
+    contracts: [
+      {
+        address: BALLOT_ADDRESS as `0x${string}`,
+        abi: ballotABI,
+        functionName: "votingPower",
+        args: [params.address],
+      },
+      {
+        address: BALLOT_ADDRESS as `0x${string}`,
+        abi: ballotABI,
+        functionName: "votingPowerSpent",
+        args: [params.address],
+      },
+    ],
   });
+
+  const votingPower =
+    typeof data?.[0]?.result === "bigint" ? formatUnits(data?.[0]?.result, 18) : 0;
+
+  const votingPowerSpent =
+    typeof data?.[1]?.result === "bigint" ? formatUnits(data?.[1]?.result, 18) : 0;
+
+  if (isLoading) return <div>Fetching voting power…</div>;
+  if (isError) return <div>Error fetching contract data.</div>;
 
   return (
     <div>
-      <div>
-        <form>
-          <label>
-            Delegate votes to:
-            <input
-              className={styles.form}
-              type="string"
-              value={delegateAddress}
-              placeholder="0"
-              onChange={(e) => setDelegateAddress(e.target.value)}
-            />
-          </label>
-        </form>
-      </div>
-      <button className={styles.button} disabled={!write || isLoading} onClick={() => write?.()}>
-        {isLoading ? "Delegating.." : "Delegate"}
-      </button>
-      {isSuccess && (
-        <div>
-          Successfully Delegated!
-          <div className={styles.txHash}>
-            <a href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>View on Etherscan</a>
-          </div>
-        </div>
-      )}
-      {isError && <div>Error: {error?.message}Error occured.</div>}
+      <div>{`Your Total Voting Power: ${votingPower}`}</div>
+      <div>{`Spent Voting Power: ${votingPowerSpent}`}</div>
     </div>
   );
 }
@@ -300,7 +311,7 @@ function Vote() {
   const [votingAmount, setVotingAmount] = useState("");
 
   const { config } = usePrepareContractWrite({
-    address: BALLOT_ADDRESS,
+    address: BALLOT_ADDRESS as `0x${string}`,
     abi: ballotABI,
     functionName: "vote",
     args: [BigInt(proposalValue), parseUnits(`${Number(votingAmount)}`, 18)],
@@ -343,6 +354,115 @@ function Vote() {
       {isSuccess && (
         <div>
           Successfully Voted!
+          <div className={styles.txHash}>
+            <a href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>View on Etherscan</a>
+          </div>
+        </div>
+      )}
+      {isError && <div>Error: {error?.message}Error occured.</div>}
+    </div>
+  );
+}
+
+// delegate
+function DelegateInfo(params: { address: `0x${string}` }) {
+  const { data, isError, isLoading } = useContractReads({
+    contracts: [
+      {
+        address: TOKEN_ADDRESS as `0x${string}`,
+        abi: tokenABI,
+        functionName: "delegates",
+        args: [params.address],
+      },
+    ],
+  });
+
+  const delegateAddress = typeof data?.[0]?.result === "string" ? data?.[0]?.result : "";
+
+  if (isLoading) return <div>Fetching voting power…</div>;
+  if (isError) return <div>Error fetching contract data.</div>;
+
+  if (delegateAddress == String(params.address))
+    return (
+      <div>
+        <div>{`Votes are self-delegated.`}</div>
+      </div>
+    );
+  return (
+    <div>
+      <div>{`Votes delegated to: ${delegateAddress}`}</div>
+    </div>
+  );
+}
+
+function SelfDelegate(params: { address: `0x${string}` }) {
+  const { config } = usePrepareContractWrite({
+    address: TOKEN_ADDRESS as `0x${string}`,
+    abi: tokenABI,
+    functionName: "delegate",
+    args: [params.address],
+  });
+  const { data, error, isError, write } = useContractWrite(config);
+
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+
+  return (
+    <div>
+      <button className={styles.button} disabled={!write || isLoading} onClick={() => write?.()}>
+        {isLoading ? "Delegating.." : "Self-delegate"}
+      </button>
+      {isSuccess && (
+        <div>
+          Successfully Self-delegated!
+          <div className={styles.txHash}>
+            <a href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>View on Etherscan</a>
+          </div>
+        </div>
+      )}
+      {isError && <div>Error: {error?.message}Error occured.</div>}
+    </div>
+  );
+}
+
+function Delegate() {
+  const [delegateAddress, setDelegateAddress] = useState(TOKEN_ADDRESS);
+
+  const { config } = usePrepareContractWrite({
+    address: TOKEN_ADDRESS as `0x${string}`,
+    abi: tokenABI,
+    functionName: "delegate",
+    args: [delegateAddress as `0x${string}`],
+  });
+  const { data, error, isError, write } = useContractWrite(config);
+
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+
+  return (
+    <div>
+      <div>
+        <form>
+          <label>
+            Delegate votes to:
+            <input
+              className={styles.form}
+              type="string"
+              value={delegateAddress}
+              placeholder="0"
+              onChange={(e) => setDelegateAddress(e.target.value)}
+            />
+          </label>
+        </form>
+      </div>
+      <button className={styles.button} disabled={!write || isLoading} onClick={() => write?.()}>
+        {isLoading ? "Delegating.." : "Delegate"}
+      </button>
+      {isSuccess && (
+        <div>
+          Successfully Delegated!
           <div className={styles.txHash}>
             <a href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>View on Etherscan</a>
           </div>
