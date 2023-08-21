@@ -34,6 +34,7 @@ function PageBody() {
       <Ballot></Ballot>
       <WalletInfo></WalletInfo>
       <VotingInfo></VotingInfo>
+      <DelegationInfo></DelegationInfo>
     </div>
   );
 }
@@ -53,7 +54,7 @@ function WalletInfo() {
   }
   if (isConnected && address)
     return (
-      <div className={styles.wallet_info}>
+      <div className={styles.container_info}>
         <h2>Account</h2>
         <p>Account Address: {address}</p>
         <p>Network: {chain?.name}</p>
@@ -64,18 +65,18 @@ function WalletInfo() {
     );
   if (isConnecting || isReconnecting)
     return (
-      <div>
+      <div className={styles.container_info}>
         <p>Loading...</p>
       </div>
     );
   if (isDisconnected)
     return (
-      <div className={styles.wallet_info}>
+      <div className={styles.container_info}>
         <p>Wallet disconnected. Connect wallet to continue</p>
       </div>
     );
   return (
-    <div>
+    <div className={styles.container_info}>
       <p>Connect wallet to continue</p>
     </div>
   );
@@ -180,7 +181,7 @@ function Ballot() {
   }
 
   return (
-    <div>
+    <div className={styles.container_info}>
       <h2>Active Ballot</h2>
       <BallotInfo></BallotInfo>
       <BallotWinner></BallotWinner>
@@ -260,13 +261,10 @@ function VotingInfo() {
 
   if (isConnected && address)
     return (
-      <div className={styles.voting_power}>
+      <div className={styles.container_info}>
         <h2>Voting</h2>
         <VotingPowerInfo address={address}></VotingPowerInfo>
         <Vote></Vote>
-        <DelegateInfo address={address}></DelegateInfo>
-        <SelfDelegate address={address}></SelfDelegate>
-        <Delegate></Delegate>
       </div>
     );
 }
@@ -299,7 +297,7 @@ function VotingPowerInfo(params: { address: `0x${string}` }) {
   if (isError) return <div>Error fetching contract data.</div>;
 
   return (
-    <div>
+    <div className={styles.voting_power}>
       <div>{`Your Total Voting Power: ${votingPower}`}</div>
       <div>{`Spent Voting Power: ${votingPowerSpent}`}</div>
     </div>
@@ -365,6 +363,29 @@ function Vote() {
 }
 
 // delegate
+function DelegationInfo() {
+  const { address, isConnecting, isReconnecting, isConnected, isDisconnected } = useAccount();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated) {
+    // Returns null on first render, so the client and server match
+    return null;
+  }
+
+  if (isConnected && address)
+    return (
+      <div className={styles.container_info}>
+        <h2>Delegation</h2>
+        <DelegateInfo address={address}></DelegateInfo>
+        <SelfDelegate address={address}></SelfDelegate>
+        <Delegate></Delegate>
+      </div>
+    );
+}
+
 function DelegateInfo(params: { address: `0x${string}` }) {
   const { data, isError, isLoading } = useContractReads({
     contracts: [
